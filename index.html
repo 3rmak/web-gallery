@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Галерея фотографій</title>
+    <style>
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+            background-color: #f0f0f0; /* Колір фону для області зображення */
+            grid-gap: 10px;
+        }
+        .gallery img {
+            max-width: 100%; /* Робимо, щоб зображення не виходило за межі контейнера */
+            height: auto;
+            display: block; /* Виправляє зазори внизу */
+        }
+        .loader {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .loader img {
+            width: 50px;
+            height: 50px;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #fff;
+        }
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .fullscreen img {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .carousel-nav {
+            position: fixed;
+            top: 50%;
+            width: 95%;
+            justify-content: space-between;
+            transform: translateY(-50%);
+            display: none;
+        }
+        .carousel-nav button {
+            margin: 0 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+            background: rgba(27, 27, 27, 0.9);
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            color: #888888;
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery">
+        <!-- JavaScript буде додавати сюди фотографії -->
+    </div>
+
+    <div class="loader">
+        <img src="loader.gif" alt="Завантаження...">
+    </div>
+
+    <div class="fullscreen">
+      <img src="" alt="Повноекранне зображення">
+      <span class="close-btn">&times;</span>
+      <div class="carousel-nav">
+        <button id="prevPhoto"><</button>
+        <button id="nextPhoto">></button>
+    </div>
+  </div>
+
+    <script>
+        // JavaScript для завантаження фотографій при прокрутці до кінця сторінки
+        let currentPage = 1;
+        const perPage = 10;
+        let loading = false;
+        let currentPhotoIndex = 0;
+        let photos = [];
+        let token = ''
+
+        function loadPhotos() {
+            if (loading) return;
+            loading = true;
+            fetch(`/photos?page=${currentPage}&perPage=${perPage}&token=${token}`)
+                .then(response => response.json())
+                .then(fetchPhotos => {
+                    const gallery = document.querySelector('.gallery');
+                    fetchPhotos.forEach(photo => {
+                        const imgContainer = document.createElement('div');
+                        const img = document.createElement('img');
+                        img.src = `data:${photo.mimetype};base64,${photo.data}`;
+                        img.extra = photo.originalName;
+                        gallery.appendChild(img);
+                    });
+                    photos = [...photos, ...fetchPhotos.map(p => p.originalName)];
+                    currentPage++;
+                    loading = false;
+                })
+                .catch(error => {
+                    console.error('Помилка завантаження фотографій:', error);
+                    loading = false;
+                });
+        }
+
+        async function openFullscreen(photoIndex) {
+            const fullscreen = document.querySelector('.fullscreen');
+            const carousel = document.querySelector('.carousel-nav');
+            const fullscreenImg = fullscreen.querySelector('img');
+            fullscreenImg.src = await fetch(`/photo?photo-path=${photos[photoIndex]}&token=${token}`)
+              .then(response => response.json())
+              .then(obj => `data:${obj.mimetype};base64,${obj.data}`)
+              .catch(e=> console.log(e.message));
+
+            currentPhotoIndex = photoIndex;
+            fullscreen.style.display = 'flex';
+            carousel.style.display = 'flex';
+        }
+
+        function closeFullscreen() {
+            document.querySelector('.fullscreen').style.display = 'none';
+            document.querySelector('.carousel-nav').style.display = 'none';
+        }
+
+        function showNextPhoto() {
+            currentPhotoIndex++;
+            if (currentPhotoIndex >= photos.length) {
+                loadPhotos();
+            } else {
+                openFullscreen(currentPhotoIndex);
+            }
+        }
+
+        function showPrevPhoto() {
+            currentPhotoIndex--;
+            if (currentPhotoIndex < 0) {
+                currentPhotoIndex = 0;
+            } else {
+                openFullscreen(currentPhotoIndex);
+            }
+        }
+
+        document.querySelector('.gallery').addEventListener('click', (event) => {
+            if (event.target.tagName === 'IMG') {
+                const index = photos.findIndex((val) => event.target.extra.includes(val));
+                openFullscreen(index);
+            }
+        });
+
+        document.querySelector('.close-btn').addEventListener('click', () => {
+            closeFullscreen();
+        });
+
+        document.getElementById('nextPhoto').addEventListener('click', () => {
+            showNextPhoto();
+        });
+
+        document.getElementById('prevPhoto').addEventListener('click', () => {
+            showPrevPhoto();
+        });
+
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                loadPhotos();
+            }
+        });
+
+        const queryParams = new URLSearchParams(window.location.search);
+        if (queryParams.has('token')) {
+            token = queryParams.get('token');
+            loadPhotos();
+        } else {
+            console.error('Token parameter not found');
+        }
+    </script>
+</body>
+</html>
