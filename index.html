@@ -26,12 +26,24 @@
         }
         .close-btn {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 2vh;
+            right: 1vw;
+            width: 5vw;
+            height: 10vh;
             cursor: pointer;
             font-size: 20px;
             color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+
+        .close-btn:hover {
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
         .fullscreen {
             position: fixed;
             top: 0;
@@ -51,6 +63,8 @@
             position: fixed;
             top: 50%;
             width: 95%;
+            height: 80%;
+            margin-top: 3vh;
             justify-content: space-between;
             transform: translateY(-50%);
             display: none;
@@ -64,6 +78,33 @@
             border-radius: 5px;
             font-size: 18px;
             color: #888888;
+        }
+        .prev-photo-container {
+            height: 100%;
+            width: 5vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .prev-photo-container:hover {
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .next-photo-container {
+            height: 100%;
+            width: 5vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .next-photo-container:hover {
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -80,8 +121,8 @@
       <img src="" alt="Повноекранне зображення">
       <span class="close-btn">&times;</span>
       <div class="carousel-nav">
-        <button id="prevPhoto"><</button>
-        <button id="nextPhoto">></button>
+        <div class="prev-photo-container"><button id="prevPhoto"><</button></div>
+        <div class="next-photo-container"><button id="nextPhoto">></button></div>
     </div>
   </div>
 
@@ -92,7 +133,7 @@
         let loading = false;
         let currentPhotoIndex = 0;
         let photos = [];
-        let token = ''
+        let token = '';
 
         function loadPhotos() {
             if (loading) return;
@@ -122,14 +163,18 @@
             const fullscreen = document.querySelector('.fullscreen');
             const carousel = document.querySelector('.carousel-nav');
             const fullscreenImg = fullscreen.querySelector('img');
+            
+            fullscreen.style.display = 'flex';
+            carousel.style.display = 'flex';
+
+            loading = true;
             fullscreenImg.src = await fetch(`/photo?photo-path=${photos[photoIndex]}&token=${token}`)
               .then(response => response.json())
               .then(obj => `data:${obj.mimetype};base64,${obj.data}`)
-              .catch(e=> console.log(e.message));
+              .catch(e=> console.log(e.message))
+              .finally(() => loading = false);
 
             currentPhotoIndex = photoIndex;
-            fullscreen.style.display = 'flex';
-            carousel.style.display = 'flex';
         }
 
         function closeFullscreen() {
@@ -166,11 +211,11 @@
             closeFullscreen();
         });
 
-        document.getElementById('nextPhoto').addEventListener('click', () => {
+        document.querySelector('.next-photo-container').addEventListener('click', () => {
             showNextPhoto();
         });
 
-        document.getElementById('prevPhoto').addEventListener('click', () => {
+        document.querySelector('.prev-photo-container').addEventListener('click', () => {
             showPrevPhoto();
         });
 
