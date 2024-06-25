@@ -4,6 +4,8 @@ const sharp = require('sharp');
 const path = require('path');
 const { STATUS_CODES } = require('http');
 
+const NODE_ENV = process.env.NODE_ENV;
+
 const { tokenCheck } = require('../middlewares/token-check.middleware');
 
 router.get(`/photos`, tokenCheck, async (req, res) => {
@@ -13,6 +15,7 @@ router.get(`/photos`, tokenCheck, async (req, res) => {
 
       const page = parseInt(req.query.page) || 1;
       const perPage = parseInt(req.query.perPage) || 10;
+      const quality = NODE_ENV === 'local' ? 100 : 50;
       const files = await fs.readdir(imageFolderPath);
       const photos = files.filter(file => file.endsWith('.JPG') || file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.PNG'));
       const startIndex = (page - 1) * perPage;
@@ -20,7 +23,7 @@ router.get(`/photos`, tokenCheck, async (req, res) => {
       const paginatedPhotos = photos.slice(startIndex, endIndex);
       const photoBlobPromises = paginatedPhotos.map(async (photoPath) => {
         const metaProm = sharp(path.join(imageFolderPath, photoPath)).metadata();
-        const bufferProm = sharp(path.join(imageFolderPath, photoPath)).resize(1000).withMetadata().jpeg({ quality: 50 }).toBuffer();
+        const bufferProm = sharp(path.join(imageFolderPath, photoPath)).resize(1000).withMetadata().jpeg({ quality }).toBuffer();
         const [meta, buffer] = await Promise.all([metaProm, bufferProm]);
 
         return {
